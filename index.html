@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Music Player</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    /* You already have the full CSS defined, so keep it unchanged */
+    /* Replace here with your entire CSS from the previous message */
+  </style>
+</head>
+<body>
+  <div class="music-player">
+    <img src="https://source.unsplash.com/random/500x500/?music" class="album-art" id="album-art">
+
+    <div class="song-info">
+      <h2 id="song-title">Select a song</h2>
+      <h3 id="song-artist"></h3>
+    </div>
+
+    <div class="progress-container" id="progress-container">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-circle"></div>
+      </div>
+    </div>
+
+    <div class="time-display">
+      <span id="current-time">0:00</span>
+      <span id="duration">0:00</span>
+    </div>
+
+    <div class="player-controls">
+      <button class="control-btn" id="previous-btn"><i class="fas fa-step-backward"></i></button>
+      <button class="control-btn play-btn" id="play-btn"><i class="fas fa-play"></i></button>
+      <button class="control-btn" id="next-btn"><i class="fas fa-step-forward"></i></button>
+    </div>
+
+    <div class="volume-container">
+      <i class="fas fa-volume-down"></i>
+      <input type="range" min="0" max="1" step="0.01" value="0.7" class="volume-slider" id="volume-slider">
+      <i class="fas fa-volume-up"></i>
+    </div>
+
+    <ul class="playlist" id="playlist"></ul>
+
+    <div class="settings">
+      <button class="setting-btn auto-play" id="auto-play-btn">
+        <i class="fas fa-infinity"></i> Autoplay
+      </button>
+      <button class="setting-btn" id="shuffle-btn">
+        <i class="fas fa-random"></i> Shuffle
+      </button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const audio = new Audio();
+      let isPlaying = false;
+      let currentSongIndex = 0;
+      let isAutoPlay = true;
+      let isShuffled = false;
+      let shuffledIndexes = [];
+
+      const songs = [
+        { title: "sachin", artist: "Unknown Artist", src: "songs/sachin.mp3", cover: "https://source.unsplash.com/500x500/?cricket" },
+        { title: "leo", artist: "Unknown Artist", src: "songs/leo.mp3", cover: "https://source.unsplash.com/500x500/?lion" },
+        { title: "melody", artist: "Unknown Artist", src: "songs/melody.mp3", cover: "https://source.unsplash.com/500x500/?music" }
+      ];
+
+      const albumArt = document.getElementById('album-art');
+      const songTitle = document.getElementById('song-title');
+      const songArtist = document.getElementById('song-artist');
+      const playBtn = document.getElementById('play-btn');
+      const playBtnIcon = playBtn.querySelector('i');
+      const prevBtn = document.getElementById('previous-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const progressBar = document.getElementById('progress-bar');
+      const progressContainer = document.getElementById('progress-container');
+      const currentTimeEl = document.getElementById('current-time');
+      const durationEl = document.getElementById('duration');
+      const volumeSlider = document.getElementById('volume-slider');
+      const playlistEl = document.getElementById('playlist');
+      const autoPlayBtn = document.getElementById('auto-play-btn');
+      const shuffleBtn = document.getElementById('shuffle-btn');
+
+      function loadSong(index) {
+        const song = songs[index];
+        audio.src = song.src;
+        songTitle.textContent = song.title;
+        songArtist.textContent = song.artist;
+        albumArt.src = song.cover;
+        updatePlaylistUI();
+      }
+
+      function playSong() {
+        audio.play();
+        isPlaying = true;
+        playBtnIcon.classList.replace('fa-play', 'fa-pause');
+        document.querySelector('.music-player').classList.add('playing');
+      }
+
+      function pauseSong() {
+        audio.pause();
+        isPlaying = false;
+        playBtnIcon.classList.replace('fa-pause', 'fa-play');
+        document.querySelector('.music-player').classList.remove('playing');
+      }
+
+      function togglePlay() {
+        isPlaying ? pauseSong() : playSong();
+      }
+
+      function nextSong() {
+        currentSongIndex = getNextIndex();
+        loadSong(currentSongIndex);
+        playSong();
+      }
+
+      function prevSong() {
+        currentSongIndex = getPrevIndex();
+        loadSong(currentSongIndex);
+        playSong();
+      }
+
+      function updateProgress() {
+        const { currentTime, duration } = audio;
+        const percent = (currentTime / duration) * 100;
+        progressBar.style.width = percent + '%';
+        currentTimeEl.textContent = formatTime(currentTime);
+        durationEl.textContent = formatTime(duration);
+      }
+
+      function setProgress(e) {
+        const width = this.clientWidth;
+        const clickX = e.offsetX;
+        const duration = audio.duration;
+        audio.currentTime = (clickX / width) * duration;
+      }
+
+      function formatTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+      }
+
+      function setVolume() {
+        audio.volume = this.value;
+      }
+
+      function updatePlaylistUI() {
+        playlistEl.innerHTML = '';
+        songs.forEach((song, index) => {
+          const li = document.createElement('li');
+          li.className = 'playlist-item' + (index === currentSongIndex ? ' active' : '');
+          li.innerHTML = `<span class="song-title">${song.title}</span><span class="song-duration">--</span>`;
+          li.onclick = () => {
+            currentSongIndex = index;
+            loadSong(index);
+            playSong();
+          };
+          playlistEl.appendChild(li);
+        });
+      }
+
+      function toggleAutoPlay() {
+        isAutoPlay = !isAutoPlay;
+        autoPlayBtn.classList.toggle('active');
+      }
+
+      function toggleShuffle() {
+        isShuffled = !isShuffled;
+        shuffleBtn.classList.toggle('active');
+        if (isShuffled) {
+          shuffledIndexes = [...songs.keys()].sort(() => Math.random() - 0.5);
+        }
+      }
+
+      function getNextIndex() {
+        if (isShuffled) {
+          const current = shuffledIndexes.indexOf(currentSongIndex);
+          return shuffledIndexes[(current + 1) % shuffledIndexes.length];
+        } else {
+          return (currentSongIndex + 1) % songs.length;
+        }
+      }
+
+      function getPrevIndex() {
+        if (isShuffled) {
+          const current = shuffledIndexes.indexOf(currentSongIndex);
+          return shuffledIndexes[(current - 1 + songs.length) % songs.length];
+        } else {
+          return (currentSongIndex - 1 + songs.length) % songs.length;
+        }
+      }
+
+      audio.addEventListener('timeupdate', updateProgress);
+      audio.addEventListener('ended', () => {
+        if (isAutoPlay) nextSong();
+        else pauseSong();
+      });
+
+      playBtn.addEventListener('click', togglePlay);
+      prevBtn.addEventListener('click', prevSong);
+      nextBtn.addEventListener('click', nextSong);
+      volumeSlider.addEventListener('input', setVolume);
+      progressContainer.addEventListener('click', setProgress);
+      autoPlayBtn.addEventListener('click', toggleAutoPlay);
+      shuffleBtn.addEventListener('click', toggleShuffle);
+
+      audio.volume = volumeSlider.value;
+      loadSong(currentSongIndex);
+    });
+  </script>
+</body>
+</html>
